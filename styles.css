@@ -294,7 +294,7 @@ svg {
   white-space: nowrap;
 }
 
-.scale-heading {
+.range-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -302,11 +302,12 @@ svg {
   margin-bottom: 10px;
 }
 
-.scale-heading h2 {
+.range-heading h2 {
   margin-bottom: 0;
 }
 
-#scaleValue {
+#scaleValue,
+#rotationValue {
   min-width: 54px;
   color: var(--accent-strong);
   font-variant-numeric: tabular-nums;
@@ -314,7 +315,7 @@ svg {
   text-align: right;
 }
 
-.scale-input {
+.range-input {
   width: 100%;
   accent-color: var(--accent);
 }

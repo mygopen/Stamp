@@ -34,6 +34,8 @@ const elements = {
   stampGrid: document.querySelector("#stampGrid"),
   scaleInput: document.querySelector("#scaleInput"),
   scaleValue: document.querySelector("#scaleValue"),
+  rotationInput: document.querySelector("#rotationInput"),
+  rotationValue: document.querySelector("#rotationValue"),
   downloadButton: document.querySelector("#downloadButton"),
   emptyState: document.querySelector("#emptyState"),
   canvasFrame: document.querySelector("#canvasFrame"),
@@ -50,6 +52,7 @@ const state = {
   selectedStamp: stamps[0],
   selectedStampImage: null,
   scale: Number(elements.scaleInput.value),
+  rotation: Number(elements.rotationInput.value),
 };
 
 let stampRequestId = 0;
@@ -79,6 +82,12 @@ function bindEvents() {
   elements.scaleInput.addEventListener("input", () => {
     state.scale = Number(elements.scaleInput.value);
     elements.scaleValue.textContent = `${state.scale}%`;
+    drawComposite();
+  });
+
+  elements.rotationInput.addEventListener("input", () => {
+    state.rotation = Number(elements.rotationInput.value);
+    elements.rotationValue.textContent = `${state.rotation}°`;
     drawComposite();
   });
 
@@ -220,35 +229,37 @@ function drawComposite() {
   ctx.imageSmoothingQuality = "high";
   ctx.drawImage(state.baseImage, 0, 0, baseWidth, baseHeight);
 
-  const stampBox = getCenteredStampBox(baseWidth, baseHeight, state.selectedStampImage);
+  const stampBox = getStampDimensions(baseWidth, baseHeight, state.selectedStampImage);
+  ctx.save();
+  ctx.translate(baseWidth / 2, baseHeight / 2);
+  ctx.rotate(degreesToRadians(state.rotation));
   ctx.drawImage(
     state.selectedStampImage,
-    stampBox.x,
-    stampBox.y,
+    -stampBox.width / 2,
+    -stampBox.height / 2,
     stampBox.width,
     stampBox.height,
   );
+  ctx.restore();
 }
 
-function getCenteredStampBox(baseWidth, baseHeight, stampImage) {
+function getStampDimensions(baseWidth, baseHeight, stampImage) {
   const targetLongSide = Math.min(baseWidth, baseHeight) * (state.scale / 100);
   const aspectRatio = stampImage.naturalWidth / stampImage.naturalHeight;
-  const dimensions =
-    aspectRatio >= 1
-      ? {
-          width: targetLongSide,
-          height: targetLongSide / aspectRatio,
-        }
-      : {
-          width: targetLongSide * aspectRatio,
-          height: targetLongSide,
-        };
 
-  return {
-    ...dimensions,
-    x: (baseWidth - dimensions.width) / 2,
-    y: (baseHeight - dimensions.height) / 2,
-  };
+  return aspectRatio >= 1
+    ? {
+        width: targetLongSide,
+        height: targetLongSide / aspectRatio,
+      }
+    : {
+        width: targetLongSide * aspectRatio,
+        height: targetLongSide,
+      };
+}
+
+function degreesToRadians(degrees) {
+  return (degrees * Math.PI) / 180;
 }
 
 function downloadComposite() {
