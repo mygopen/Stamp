@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>印章合成</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <i data-lucide="stamp"></i>
+          </div>
+          <div>
+            <h1>印章合成</h1>
+            <p id="statusText" aria-live="polite">尚未上傳圖片</p>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <button class="secondary-button" type="button" data-upload-trigger>
+            <i data-lucide="image-up"></i>
+            <span>選擇圖片</span>
+          </button>
+          <button class="primary-button" id="downloadButton" type="button" disabled>
+            <i data-lucide="download"></i>
+            <span>下載</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar" aria-label="編輯控制">
+          <section class="control-group">
+            <h2>圖片</h2>
+            <div class="upload-box" id="dropZone">
+              <div class="upload-copy">
+                <i data-lucide="image"></i>
+                <span id="fileName">尚未選擇</span>
+              </div>
+              <button class="secondary-button" type="button" data-upload-trigger>
+                <i data-lucide="upload"></i>
+                <span>上傳</span>
+              </button>
+            </div>
+            <input id="fileInput" type="file" accept="image/*" />
+          </section>
+
+          <section class="control-group">
+            <h2>印章</h2>
+            <div class="stamp-grid" id="stampGrid"></div>
+          </section>
+
+          <section class="control-group">
+            <div class="scale-heading">
+              <h2>大小</h2>
+              <output id="scaleValue" for="scaleInput">42%</output>
+            </div>
+            <input
+              id="scaleInput"
+              class="scale-input"
+              type="range"
+              min="12"
+              max="90"
+              value="42"
+              step="1"
+            />
+          </section>
+        </aside>
+
+        <section class="stage" aria-label="圖片預覽">
+          <div class="empty-state" id="emptyState">
+            <i data-lucide="image-up"></i>
+            <strong>尚未上傳圖片</strong>
+            <button class="primary-button" type="button" data-upload-trigger>
+              <i data-lucide="upload"></i>
+              <span>選擇圖片</span>
+            </button>
+          </div>
+
+          <div class="canvas-frame" id="canvasFrame" hidden>
+            <canvas id="resultCanvas"></canvas>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
