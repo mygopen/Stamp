@@ -54,17 +54,33 @@
           </section>
 
           <section class="control-group">
-            <div class="scale-heading">
+            <div class="range-heading">
               <h2>大小</h2>
               <output id="scaleValue" for="scaleInput">42%</output>
             </div>
             <input
               id="scaleInput"
-              class="scale-input"
+              class="range-input"
               type="range"
               min="12"
               max="90"
               value="42"
+              step="1"
+            />
+          </section>
+
+          <section class="control-group">
+            <div class="range-heading">
+              <h2>角度</h2>
+              <output id="rotationValue" for="rotationInput">-15°</output>
+            </div>
+            <input
+              id="rotationInput"
+              class="range-input"
+              type="range"
+              min="-180"
+              max="180"
+              value="-15"
               step="1"
             />
           </section>
