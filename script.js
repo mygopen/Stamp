@@ -36,6 +36,8 @@ const elements = {
   scaleValue: document.querySelector("#scaleValue"),
   rotationInput: document.querySelector("#rotationInput"),
   rotationValue: document.querySelector("#rotationValue"),
+  opacityInput: document.querySelector("#opacityInput"),
+  opacityValue: document.querySelector("#opacityValue"),
   downloadButton: document.querySelector("#downloadButton"),
   emptyState: document.querySelector("#emptyState"),
   canvasFrame: document.querySelector("#canvasFrame"),
@@ -53,6 +55,7 @@ const state = {
   selectedStampImage: null,
   scale: Number(elements.scaleInput.value),
   rotation: Number(elements.rotationInput.value),
+  opacity: Number(elements.opacityInput.value),
 };
 
 let stampRequestId = 0;
@@ -88,6 +91,12 @@ function bindEvents() {
   elements.rotationInput.addEventListener("input", () => {
     state.rotation = Number(elements.rotationInput.value);
     elements.rotationValue.textContent = `${state.rotation}°`;
+    drawComposite();
+  });
+
+  elements.opacityInput.addEventListener("input", () => {
+    state.opacity = Number(elements.opacityInput.value);
+    elements.opacityValue.textContent = `${state.opacity}%`;
     drawComposite();
   });
 
@@ -231,6 +240,7 @@ function drawComposite() {
 
   const stampBox = getStampDimensions(baseWidth, baseHeight, state.selectedStampImage);
   ctx.save();
+  ctx.globalAlpha = state.opacity / 100;
   ctx.translate(baseWidth / 2, baseHeight / 2);
   ctx.rotate(degreesToRadians(state.rotation));
   ctx.drawImage(
