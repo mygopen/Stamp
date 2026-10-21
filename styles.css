@@ -478,3 +478,14 @@ svg {
     padding: 22px;
   }
 }
+
+/* Keep the desktop editor within the viewport so controls can scroll. */
+@media (min-width: 901px) { .app-shell { height: 100dvh; } }
+.canvas-frame { position: relative; }
+#resultCanvas.mosaic-mode { touch-action: none; cursor: crosshair; }
+#selectionBox { position: absolute; pointer-events: none; border: 2px dashed var(--accent); background: rgba(15, 139, 141, .15); }
+.help-text { font-size: .82rem; line-height: 1.6; color: var(--muted); }
+.edit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.secondary-button:disabled { opacity: .5; cursor: not-allowed; }
+#mosaicToggle[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-strong); }
+#brightnessValue, #mosaicSizeValue { color: var(--accent-strong); font-variant-numeric: tabular-nums; white-space: nowrap; }

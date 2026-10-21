@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>印章合成</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=20261021-1" />
   </head>
   <body>
     <div class="app-shell">
@@ -46,6 +46,30 @@
               </button>
             </div>
             <input id="fileInput" type="file" accept="image/*" />
+          </section>
+
+          <section class="control-group">
+            <div class="range-heading">
+              <h2><label for="brightnessInput">底圖明暗度</label></h2>
+              <output id="brightnessValue" for="brightnessInput">100%</output>
+            </div>
+            <input id="brightnessInput" class="range-input" type="range" min="0" max="200" value="100" disabled />
+            <button id="resetBrightness" class="secondary-button" type="button" disabled>重設亮度</button>
+          </section>
+          <section class="control-group">
+            <h2>局部馬賽克</h2>
+            <button id="mosaicToggle" class="secondary-button" type="button" aria-pressed="false" disabled>框選馬賽克</button>
+            <p id="mosaicHelp" class="help-text">開啟後，在圖片上拖曳框選，可新增多個區域。按 Esc 取消框選。</p>
+            <div class="range-heading">
+              <label for="mosaicSize">格子大小（原圖像素）</label>
+              <output id="mosaicSizeValue" for="mosaicSize">20 px</output>
+            </div>
+            <input id="mosaicSize" class="range-input" type="range" min="4" max="100" value="20" disabled />
+            <div class="edit-actions">
+              <button id="undoEdit" class="secondary-button" type="button" disabled>撤銷</button>
+              <button id="clearMosaic" class="secondary-button" type="button" disabled>清除馬賽克</button>
+            </div>
+            <p id="regionCount" class="help-text" aria-live="polite">尚未框選區域</p>
           </section>
 
           <section class="control-group">
@@ -113,13 +137,14 @@
           </div>
 
           <div class="canvas-frame" id="canvasFrame" hidden>
-            <canvas id="resultCanvas"></canvas>
+            <canvas id="resultCanvas" aria-label="底圖與印章預覽" aria-describedby="mosaicHelp"></canvas>
+            <div id="selectionBox" hidden></div>
           </div>
         </section>
       </main>
     </div>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    <script src="./script.js"></script>
+    <script src="./script.js?v=20261021-1"></script>
   </body>
 </html>

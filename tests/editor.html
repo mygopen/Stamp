@@ -1,0 +1,64 @@
+<!doctype html><meta charset="utf-8"><title>Stamp 編輯回歸測試</title>
+<style>body{font:16px system-ui}iframe{width:1100px;height:850px;border:1px solid #ccc} .pass{color:green}.fail{color:red}</style>
+<h1>Stamp 編輯回歸測試</h1><ol id="results"></ol><iframe src="../index.html"></iframe>
+<script>
+const frame=document.querySelector('iframe'),results=document.querySelector('#results');
+function check(ok,name){const li=document.createElement('li');li.className=ok?'pass':'fail';li.textContent=(ok?'PASS ':'FAIL ')+name;results.append(li);if(!ok)throw Error(name)}
+const pause=()=>new Promise(r=>setTimeout(r,100));
+if (location.search.includes('mobile')) frame.style.width='390px';
+frame.onload=async()=>{try{
+const w=frame.contentWindow,d=w.document,run=s=>w.eval(s),el=id=>d.getElementById(id);
+const bytes=await fetch('fixture.png').then(r=>r.blob());
+const upload=async(name)=>{run('handleFile')(new w.File([bytes],name,{type:'image/png'}));await pause();};
+await upload('first.png');
+check(run('state.brightness===100 && state.regions.length===0')&&el('resultCanvas').width===800,'上傳原圖與預設亮度');
+const pixel=(x,y)=>Array.from(el('resultCanvas').getContext('2d').getImageData(x,y,1,1).data);
+const original=pixel(80,80);
+function range(id,value){el(id).value=value;el(id).dispatchEvent(new w.Event('input'));el(id).dispatchEvent(new w.Event('change'));}
+range('brightnessInput',50);check(pixel(80,80)[0]===40,'亮度即時預覽像素為原圖 50%');
+el('resetBrightness').click();check(JSON.stringify(pixel(80,80))===JSON.stringify(original),'亮度重設恢復原始像素');
+el('undoEdit').click();check(run('state.brightness')===50,'亮度重設可撤銷');el('resetBrightness').click();
+el('mosaicToggle').click();
+function drag(ax,ay,bx,by,type='mouse'){
+const c=el('resultCanvas'),r=c.getBoundingClientRect();
+// Actual capture requires a trusted pointer; test geometry/event routing independently.
+const saved=c.setPointerCapture;c.setPointerCapture=()=>{};
+const fire=(name,x,y)=>c.dispatchEvent(new w.PointerEvent(name,{pointerId:1,pointerType:type,isPrimary:true,button:0,clientX:r.left+x*r.width/800,clientY:r.top+y*r.height/500,bubbles:true}));
+fire('pointerdown',ax,ay);fire('pointermove',bx,by);fire('pointerup',bx,by);c.setPointerCapture=saved;
+}
+drag(20,20,140,140);drag(280,160,160,40,'touch');
+check(run('state.regions.length')===2,'滑鼠與觸控事件、多區及反向框選');
+check(run('state.regions[1].x')>=159&&run('state.regions[1].x')<=160,'CSS 縮放座標轉換');
+check(JSON.stringify(pixel(80,80))!==JSON.stringify(original),'區內馬賽克改變像素');
+check(pixel(10,10)[0]===10,'區外原圖保持不變');
+range('mosaicSize',40);check(run('state.mosaicSize')===40,'格子大小調整');
+el('clearMosaic').click();check(run('state.regions.length')===0,'清除全部區域');
+el('undoEdit').click();check(run('state.regions.length')===2,'撤銷清除恢復多區');
+const before=el('resultCanvas').toDataURL();run('drawComposite()');check(el('resultCanvas').toDataURL()===before,'重繪不累積影像損失');
+// Confirm PNG export uses exactly the preview canvas and same dimensions/pixels.
+const blob=await new Promise(r=>el('resultCanvas').toBlob(r,'image/png'));
+const image=await createImageBitmap(blob);const out=document.createElement('canvas');out.width=800;out.height=500;out.getContext('2d').drawImage(image,0,0);
+check(out.toDataURL()===before,'PNG 匯出像素與預覽完全一致');
+const stamp=run('state.selectedStampImage');check(!!stamp,'遠端印章載入');
+range('opacityInput',0);range('brightnessInput',0);range('opacityInput',100);
+const expected=document.createElement('canvas');expected.width=800;expected.height=500;
+const ec=expected.getContext('2d');ec.fillRect(0,0,800,500);ec.translate(400,250);ec.rotate(-15*Math.PI/180);
+const box=run('getStampDimensions(800,500,state.selectedStampImage)');ec.drawImage(stamp,-box.width/2,-box.height/2,box.width,box.height);
+check(expected.toDataURL()===el('resultCanvas').toDataURL(),'亮度與馬賽克不影響印章像素');
+range('scaleInput',60);range('rotationInput',30);check(run('state.scale===60 && state.rotation===30'),'既有印章大小與角度調整');
+await upload('second.png');check(run('state.brightness===100 && state.regions.length===0 && history.length===0'),'更換圖片重設底圖效果與撤銷紀錄');
+check(el('fileName').textContent==='second.png'&&!el('downloadButton').disabled,'更換圖片名稱與下載狀態');
+let exported=null;
+const originalClick=w.HTMLAnchorElement.prototype.click;
+w.HTMLAnchorElement.prototype.click=function(){exported={name:this.download,url:this.href};};
+el('downloadButton').click();
+for(let i=0;i<50&&!exported;i++) await pause();
+w.HTMLAnchorElement.prototype.click=originalClick;
+check(exported && exported.name==='second-stamped.png','下載按鈕建立正確 PNG 檔名與連結');
+const downloaded=await fetch(exported.url).then(r=>r.blob());
+check(downloaded.type==='image/png' && downloaded.size>0,'下載流程產生有效 PNG Blob');
+const c=el('resultCanvas'),rect=c.getBoundingClientRect();
+check(rect.width>0 && rect.right<=frame.clientWidth+1,'預覽符合桌機／手機畫面寬度');
+document.title='PASS Stamp 編輯回歸測試';
+}catch(e){const p=document.createElement('p');p.textContent=e.stack;results.append(p);document.title='FAIL Stamp 編輯回歸測試';}};
+</script>
