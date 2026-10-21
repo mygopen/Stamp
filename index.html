@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>印章合成</title>
-    <link rel="stylesheet" href="./styles.css?v=20261021-1" />
+    <link rel="stylesheet" href="./styles.css?v=20261021-2" />
   </head>
   <body>
     <div class="app-shell">
@@ -59,13 +59,16 @@
           <section class="control-group">
             <h2>局部馬賽克</h2>
             <button id="mosaicToggle" class="secondary-button" type="button" aria-pressed="false" disabled>框選馬賽克</button>
-            <p id="mosaicHelp" class="help-text">開啟後，在圖片上拖曳框選，可新增多個區域。按 Esc 取消框選。</p>
+            <p id="mosaicHelp" class="help-text">拖曳新增區域，放開後保留黑白虛線。點選區域或下方清單切換；格子大小只調整目前區域。按 Esc 取消選取，保留馬賽克。</p>
             <div class="range-heading">
-              <label for="mosaicSize">格子大小（原圖像素）</label>
+              <label id="mosaicSizeLabel" for="mosaicSize">新區域格子大小（原圖像素）</label>
               <output id="mosaicSizeValue" for="mosaicSize">20 px</output>
             </div>
             <input id="mosaicSize" class="range-input" type="range" min="4" max="100" value="20" disabled />
+            <label for="regionSelect" class="help-text">目前編輯區域</label>
+            <select id="regionSelect" disabled><option value="-1">未選取區域</option></select>
             <div class="edit-actions">
+              <button id="deselectRegion" class="secondary-button" type="button" disabled>取消選取</button>
               <button id="undoEdit" class="secondary-button" type="button" disabled>撤銷</button>
               <button id="clearMosaic" class="secondary-button" type="button" disabled>清除馬賽克</button>
             </div>
@@ -138,13 +141,13 @@
 
           <div class="canvas-frame" id="canvasFrame" hidden>
             <canvas id="resultCanvas" aria-label="底圖與印章預覽" aria-describedby="mosaicHelp"></canvas>
-            <div id="selectionBox" hidden></div>
+            <div id="selectionBox" aria-hidden="true" hidden></div>
           </div>
         </section>
       </main>
     </div>
 
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-    <script src="./script.js?v=20261021-1"></script>
+    <script src="./script.js?v=20261021-2"></script>
   </body>
 </html>

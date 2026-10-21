@@ -483,7 +483,9 @@ svg {
 @media (min-width: 901px) { .app-shell { height: 100dvh; } }
 .canvas-frame { position: relative; }
 #resultCanvas.mosaic-mode { touch-action: none; cursor: crosshair; }
-#selectionBox { position: absolute; pointer-events: none; border: 2px dashed var(--accent); background: rgba(15, 139, 141, .15); }
+#selectionBox { position: absolute; pointer-events: none; border: 1px solid white; outline: 1px dashed black; outline-offset: -1px; }
+#selectionBox[hidden] { display: none; }
+#regionSelect { display: block; width: 100%; min-height: 42px; margin-top: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); padding: 8px; }
 .help-text { font-size: .82rem; line-height: 1.6; color: var(--muted); }
 .edit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .secondary-button:disabled { opacity: .5; cursor: not-allowed; }

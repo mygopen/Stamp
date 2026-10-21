@@ -45,7 +45,7 @@ const elements = {
   statusText: document.querySelector("#statusText"),
 };
 
-["brightnessInput", "brightnessValue", "resetBrightness", "mosaicToggle", "mosaicSize", "mosaicSizeValue", "undoEdit", "clearMosaic", "regionCount", "selectionBox"].forEach((id) => {
+["brightnessInput", "brightnessValue", "resetBrightness", "mosaicToggle", "mosaicSize", "mosaicSizeValue", "undoEdit", "clearMosaic", "regionCount", "selectionBox", "regionSelect", "deselectRegion", "mosaicSizeLabel"].forEach((id) => {
   elements[id] = document.getElementById(id);
 });
 const baseCanvas = document.createElement("canvas");
@@ -63,6 +63,7 @@ const state = {
   brightness: 100,
   mosaicSize: 20,
   regions: [],
+  selectedRegion: -1,
   mosaicMode: false,
   baseFileName: "stamped-image",
   selectedStamp: stamps[0],
@@ -233,6 +234,7 @@ function handleFile(file) {
     pendingEdit = null;
     state.brightness = 100;
     state.regions = [];
+    state.selectedRegion = -1;
     baseDirty = true;
     state.baseImage = image;
     state.baseFileName = getBaseFileName(file.name);
@@ -356,7 +358,7 @@ function refreshIcons() {
 }
 
 function snapshot() {
-  return { brightness: state.brightness, mosaicSize: state.mosaicSize, regions: state.regions.map((r) => ({ ...r })) };
+  return { selectedRegion: state.selectedRegion, brightness: state.brightness, mosaicSize: state.mosaicSize, regions: state.regions.map((r) => ({ ...r })) };
 }
 function remember(before = snapshot()) {
   history.push(before);
@@ -374,8 +376,16 @@ function syncBaseControls() {
   elements.clearMosaic.disabled = disabled || state.regions.length === 0;
   elements.brightnessInput.value = state.brightness;
   elements.brightnessValue.textContent = `${state.brightness}%`;
-  elements.mosaicSize.value = state.mosaicSize;
-  elements.mosaicSizeValue.textContent = `${state.mosaicSize} px`;
+  const current = state.regions[state.selectedRegion];
+  const size = current ? current.size : state.mosaicSize;
+  elements.mosaicSize.value = size;
+  elements.mosaicSizeValue.textContent = `${size} px`;
+  elements.mosaicSizeLabel.textContent = current ? `區域 ${state.selectedRegion + 1} 格子大小（原圖像素）` : "新區域格子大小（原圖像素）";
+  elements.regionSelect.replaceChildren(new Option("未選取區域", "-1"), ...state.regions.map((r, i) => new Option(`區域 ${i + 1}（${r.size} px）`, String(i))));
+  elements.regionSelect.value = String(state.selectedRegion);
+  elements.regionSelect.disabled = disabled || !state.regions.length;
+  elements.deselectRegion.disabled = disabled || (!current && !selection);
+  updateSelectionBox();
   elements.regionCount.textContent = state.regions.length ? `已框選 ${state.regions.length} 個區域` : "尚未框選區域";
   elements.mosaicToggle.setAttribute("aria-pressed", String(state.mosaicMode));
   elements.canvas.classList.toggle("mosaic-mode", state.mosaicMode);
@@ -397,18 +407,26 @@ function renderBase() {
     baseCtx.putImageData(pixels, 0, 0);
   }
   if (state.regions.length) {
-    const small = document.createElement("canvas");
-    small.width = Math.ceil(w / state.mosaicSize);
-    small.height = Math.ceil(h / state.mosaicSize);
-    small.getContext("2d").drawImage(baseCanvas, 0, 0, small.width, small.height);
-    baseCtx.save();
-    baseCtx.beginPath();
-    state.regions.forEach((r) => baseCtx.rect(r.x, r.y, r.width, r.height));
-    baseCtx.clip();
-    baseCtx.clearRect(0, 0, w, h);
-    baseCtx.imageSmoothingEnabled = false;
-    baseCtx.drawImage(small, 0, 0, w, h);
-    baseCtx.restore();
+    const source = document.createElement("canvas");
+    source.width = w; source.height = h;
+    source.getContext("2d").drawImage(baseCanvas, 0, 0);
+    const sizes = new Map();
+    // Every region samples the same brightened original, including overlaps.
+    state.regions.forEach((r) => {
+      let small = sizes.get(r.size);
+      if (!small) {
+        small = document.createElement("canvas");
+        small.width = Math.ceil(w / r.size); small.height = Math.ceil(h / r.size);
+        small.getContext("2d").drawImage(source, 0, 0, small.width, small.height);
+        sizes.set(r.size, small);
+      }
+      baseCtx.save(); baseCtx.beginPath();
+      baseCtx.rect(r.x, r.y, r.width, r.height); baseCtx.clip();
+      baseCtx.clearRect(r.x, r.y, r.width, r.height);
+      baseCtx.imageSmoothingEnabled = false;
+      baseCtx.drawImage(small, 0, 0, w, h);
+      baseCtx.restore();
+    });
   }
   baseDirty = false;
 }
@@ -423,17 +441,36 @@ function selectionRect(a, b) {
   const x = Math.floor(Math.min(a.x, b.x)), y = Math.floor(Math.min(a.y, b.y));
   return { x, y, width: Math.ceil(Math.max(a.x, b.x)) - x, height: Math.ceil(Math.max(a.y, b.y)) - y };
 }
+function updateSelectionBox(rect = selection?.rect || state.regions[state.selectedRegion]) {
+  if (!rect || !state.baseImage) { elements.selectionBox.hidden = true; return; }
+  const canvasRect = elements.canvas.getBoundingClientRect();
+  const frameRect = elements.canvasFrame.getBoundingClientRect();
+  Object.assign(elements.selectionBox.style, {
+    left: `${canvasRect.left - frameRect.left - elements.canvasFrame.clientLeft + elements.canvasFrame.scrollLeft + rect.x * canvasRect.width / elements.canvas.width}px`,
+    top: `${canvasRect.top - frameRect.top - elements.canvasFrame.clientTop + elements.canvasFrame.scrollTop + rect.y * canvasRect.height / elements.canvas.height}px`,
+    width: `${rect.width * canvasRect.width / elements.canvas.width}px`,
+    height: `${rect.height * canvasRect.height / elements.canvas.height}px`,
+  });
+  elements.selectionBox.hidden = false;
+}
+// Cancel only the unfinished gesture; a committed selection remains visible.
 function cancelSelection() {
-  if (selection && elements.canvas.hasPointerCapture(selection.id)) elements.canvas.releasePointerCapture(selection.id);
+  const previous = selection;
   selection = null;
-  elements.selectionBox.hidden = true;
+  if (previous && elements.canvas.hasPointerCapture(previous.id)) elements.canvas.releasePointerCapture(previous.id);
+  updateSelectionBox();
+}
+function deselectRegion() {
+  cancelSelection(); state.selectedRegion = -1; syncBaseControls();
 }
 function bindBaseEdits() {
   [["brightnessInput", "brightness"], ["mosaicSize", "mosaicSize"]].forEach(([id, key]) => {
     elements[id].addEventListener("input", () => {
       if (!state.baseImage) return;
       if (!pendingEdit) pendingEdit = snapshot();
-      state[key] = Number(elements[id].value);
+      const value = Number(elements[id].value);
+      if (key === "mosaicSize" && state.regions[state.selectedRegion]) state.regions[state.selectedRegion].size = value;
+      else state[key] = value;
       changedBase();
     });
     elements[id].addEventListener("change", () => {
@@ -447,7 +484,7 @@ function bindBaseEdits() {
     remember(); state.brightness = 100; changedBase();
   });
   elements.clearMosaic.addEventListener("click", () => {
-    cancelSelection(); remember(); state.regions = []; changedBase();
+    cancelSelection(); remember(); state.regions = []; state.selectedRegion = -1; changedBase();
   });
   elements.undoEdit.addEventListener("click", () => {
     cancelSelection();
@@ -466,27 +503,29 @@ function bindBaseEdits() {
   });
   elements.canvas.addEventListener("pointermove", (event) => {
     if (!selection || event.pointerId !== selection.id) return;
-    const r = selectionRect(selection.start, imagePoint(event));
-    const canvasRect = elements.canvas.getBoundingClientRect();
-    const frameRect = elements.canvasFrame.getBoundingClientRect();
-    Object.assign(elements.selectionBox.style, {
-      left: `${canvasRect.left - frameRect.left - elements.canvasFrame.clientLeft + elements.canvasFrame.scrollLeft + r.x * canvasRect.width / elements.canvas.width}px`,
-      top: `${canvasRect.top - frameRect.top - elements.canvasFrame.clientTop + elements.canvasFrame.scrollTop + r.y * canvasRect.height / elements.canvas.height}px`,
-      width: `${r.width * canvasRect.width / elements.canvas.width}px`,
-      height: `${r.height * canvasRect.height / elements.canvas.height}px`,
-    });
-    elements.selectionBox.hidden = false;
+    selection.rect = selectionRect(selection.start, imagePoint(event));
+    updateSelectionBox();
   });
   elements.canvas.addEventListener("pointerup", (event) => {
     if (!selection || event.pointerId !== selection.id) return;
     const end = imagePoint(event), start = selection.start;
     const r = selectionRect(start, end);
     cancelSelection();
-    if (Math.abs(end.x - start.x) < 1 || Math.abs(end.y - start.y) < 1) return;
-    remember(); state.regions.push(r); changedBase();
+    if (Math.abs(end.x - start.x) < 1 || Math.abs(end.y - start.y) < 1) {
+      state.selectedRegion = state.regions.findLastIndex((region) => end.x >= region.x && end.x <= region.x + region.width && end.y >= region.y && end.y <= region.y + region.height);
+      syncBaseControls(); return;
+    }
+    remember(); state.regions.push({ ...r, size: state.mosaicSize });
+    state.selectedRegion = state.regions.length - 1; changedBase();
   });
   ["pointercancel", "lostpointercapture"].forEach((name) => elements.canvas.addEventListener(name, cancelSelection));
-  window.addEventListener("keydown", (event) => { if (event.key === "Escape") cancelSelection(); });
+  window.addEventListener("keydown", (event) => { if (event.key === "Escape") deselectRegion(); });
+  elements.deselectRegion.addEventListener("click", deselectRegion);
+  elements.regionSelect.addEventListener("change", () => {
+    cancelSelection(); state.selectedRegion = Number(elements.regionSelect.value); syncBaseControls();
+  });
+  new ResizeObserver(() => updateSelectionBox()).observe(elements.canvas);
+  elements.canvasFrame.addEventListener("scroll", () => updateSelectionBox());
   window.addEventListener("resize", cancelSelection);
 }
 
